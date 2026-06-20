@@ -1,0 +1,7 @@
+# Core dependencies — enough to run the web app, the control loop, and the
+# mock camera/detector/robot.  These have no GPU or hardware requirements.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+numpy>=1.24
+opencv-python-headless>=4.8
+pillow>=10.0

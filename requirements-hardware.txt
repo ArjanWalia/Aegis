@@ -1,0 +1,14 @@
+# Hardware / real-inference extras. Install these (in addition to
+# requirements.txt) to run against a physical SO-ARM101 and the YOLOv8 CNN.
+#
+#   pip install -r requirements.txt -r requirements-hardware.txt
+#
+# Notes:
+#  * `ultralytics` pulls in torch/torchvision (CPU by default). For CUDA, install
+#    a matching torch build first: https://pytorch.org/get-started/locally/
+#  * `feetech-servo-sdk` provides the `scservo_sdk` module used by the driver.
+#  * If you use a wrist webcam you may prefer the full `opencv-python` (with GUI)
+#    over the headless build in requirements.txt.
+ultralytics>=8.1
+feetech-servo-sdk>=1.0
+pyserial>=3.5

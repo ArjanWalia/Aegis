@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# Model weights (auto-downloaded by ultralytics)
+*.pt
+*.onnx
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp

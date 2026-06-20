@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aegis — SO-ARM101 Object Tracker</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🛡️ Aegis</h1>
+    <p class="sub">SO-ARM101 vision-guided object tracker</p>
+  </header>
+
+  <main>
+    <section class="feed">
+      <div class="video-wrap">
+        <img id="video" src="/video_feed" alt="live camera feed" />
+        <div id="banner" class="banner standby">STANDBY</div>
+      </div>
+      <p id="message" class="message">starting…</p>
+    </section>
+
+    <section class="panel">
+      <div class="card">
+        <h2>1 · Target</h2>
+        <label for="target">Item to track</label>
+        <input id="target" list="labels" placeholder="e.g. bottle, cup, cell phone" autocomplete="off" />
+        <datalist id="labels"></datalist>
+        <button id="set-target" class="btn">Set target</button>
+        <p class="hint">Only labels the CNN knows can be tracked — start typing to see the list.</p>
+      </div>
+
+      <div class="card">
+        <h2>2 · Engage</h2>
+        <div class="row">
+          <button id="engage" class="btn primary">▶ Engage</button>
+          <button id="stop" class="btn danger">■ Stop</button>
+        </div>
+        <p class="hint">Engage lets the arm move to keep the target centred. Stop holds the motors still.</p>
+      </div>
+
+      <div class="card">
+        <h2>Status</h2>
+        <dl class="status">
+          <dt>State</dt><dd id="st-state">—</dd>
+          <dt>Target</dt><dd id="st-target">—</dd>
+          <dt>Visible</dt><dd id="st-visible">—</dd>
+          <dt>Confidence</dt><dd id="st-conf">—</dd>
+          <dt>Error X / Y</dt><dd id="st-error">—</dd>
+          <dt>Loop FPS</dt><dd id="st-fps">—</dd>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Joints (deg)</h2>
+        <div id="joints" class="joints">—</div>
+      </div>
+
+      <div class="card">
+        <h2>Seen now</h2>
+        <div id="detections" class="detections">—</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
