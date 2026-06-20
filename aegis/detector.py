@@ -83,13 +83,15 @@ class YOLODetector:
     """Ultralytics YOLOv8 detector (CNN, COCO-pretrained)."""
 
     def __init__(self, model_path: str = "yolov8n.pt", confidence: float = 0.4,
-                 device: str = "cpu"):
+                 device: str = "cpu", imgsz: int = 416):
         from ultralytics import YOLO  # lazy: only needed for real detection
 
-        log.info("Loading YOLO model '%s' on %s ...", model_path, device)
+        log.info("Loading YOLO model '%s' on %s (imgsz=%d) ...",
+                 model_path, device, imgsz)
         self.model = YOLO(model_path)
         self.confidence = confidence
         self.device = device
+        self.imgsz = imgsz
         # COCO names as reported by the model itself.
         self.names = list(self.model.names.values())
 
@@ -99,7 +101,8 @@ class YOLODetector:
 
     def detect(self, frame: np.ndarray) -> List[Detection]:
         results = self.model.predict(
-            frame, conf=self.confidence, device=self.device, verbose=False
+            frame, conf=self.confidence, device=self.device,
+            imgsz=self.imgsz, verbose=False
         )
         detections: List[Detection] = []
         for res in results:
@@ -149,7 +152,8 @@ def make_detector(config) -> object:
         log.info("Using MockDetector (synthetic detections).")
         return MockDetector()
     try:
-        return YOLODetector(config.yolo_model, config.confidence, config.device)
+        return YOLODetector(config.yolo_model, config.confidence, config.device,
+                            config.yolo_imgsz)
     except Exception as exc:  # noqa: BLE001 - want any failure to fall back
         if config.strict:
             raise

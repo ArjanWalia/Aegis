@@ -30,6 +30,12 @@ class RealCamera:
         self.cap = cv2.VideoCapture(source)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+        # Keep only the latest frame so reads don't return a stale backlog
+        # (a major source of perceived lag with USB webcams).
+        try:
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        except Exception:  # noqa: BLE001 - not all backends support this
+            pass
         if not self.cap.isOpened():
             raise RuntimeError(f"Could not open camera source {source!r}")
         self.width = width

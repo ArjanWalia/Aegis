@@ -92,6 +92,8 @@ class Config:
     yolo_model: str = field(default_factory=lambda: _str("AEGIS_YOLO_MODEL", "yolov8n.pt"))
     confidence: float = field(default_factory=lambda: _float("AEGIS_CONFIDENCE", 0.40))
     device: str = field(default_factory=lambda: _str("AEGIS_DEVICE", "cpu"))
+    # Inference resolution: smaller = faster, less precise. 320/416/640 typical.
+    yolo_imgsz: int = field(default_factory=lambda: _int("AEGIS_YOLO_IMGSZ", 416))
     mock_detector: bool = field(default_factory=lambda: _bool("AEGIS_MOCK_DETECTOR", False))
 
     # -- Robot (Feetech STS3215 bus) ----------------------------------------
