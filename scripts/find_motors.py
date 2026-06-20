@@ -27,14 +27,16 @@ def main() -> int:
     args = ap.parse_args()
 
     try:
-        from scservo_sdk import COMM_SUCCESS, PortHandler, sms_sts
-    except ImportError:
-        print("scservo_sdk not installed. Run:")
-        print("  pip install -r requirements-hardware.txt")
+        from scservo_sdk import COMM_SUCCESS, PacketHandler, PortHandler
+    except Exception as exc:  # noqa: BLE001
+        print(f"Could not import scservo_sdk ({exc!r}).")
+        print("Install it into THIS interpreter:")
+        print("  python -m pip install feetech-servo-sdk")
         return 2
 
+    ADDR_PRESENT_POSITION = 56  # STS/SMS present-position register
     port = PortHandler(args.port)
-    packet = sms_sts(port)
+    packet = PacketHandler(0)  # protocol_end=0 for STS/SMS servos
     if not port.openPort():
         print(f"ERROR: could not open {args.port}")
         return 1
@@ -45,9 +47,9 @@ def main() -> int:
     print(f"Scanning {args.port} @ {args.baud} baud (IDs 1..{args.max_id})…\n")
     found = 0
     for motor_id in range(1, args.max_id + 1):
-        model, comm, err = packet.ping(motor_id)
+        model, comm, err = packet.ping(port, motor_id)
         if comm == COMM_SUCCESS and err == 0:
-            pos, _spd, _c, _e = packet.ReadPosSpeed(motor_id)
+            pos, _c, _e = packet.read2ByteTxRx(port, motor_id, ADDR_PRESENT_POSITION)
             print(f"  ID {motor_id:>3}  model={model:<6}  "
                   f"pos={pos:>4} ({ticks_to_deg(pos):6.1f} deg)")
             found += 1

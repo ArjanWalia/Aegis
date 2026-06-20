@@ -103,26 +103,39 @@ class _BaseArm:
 
 
 class FeetechArm(_BaseArm):
-    """Real SO-ARM101 over the Feetech serial bus."""
+    """Real SO-ARM101 over the Feetech serial bus.
 
-    # STS/SMS control-table address for torque enable (register 40).
+    Uses the generic ``scservo_sdk`` (``feetech-servo-sdk`` on PyPI), whose
+    ``PacketHandler(protocol_end)`` exposes register-level ``read*/write*TxRx``
+    calls that take the port as the first argument. STS/SMS servos use
+    ``protocol_end = 0``.
+    """
+
+    # STS/SMS control-table register addresses.
     ADDR_TORQUE_ENABLE = 40
+    ADDR_GOAL_ACC = 41
+    ADDR_GOAL_POSITION = 42  # 2 bytes
+    ADDR_GOAL_SPEED = 46     # 2 bytes
+    ADDR_PRESENT_POSITION = 56  # 2 bytes
+    STS_PROTOCOL_END = 0
 
     def __init__(self, config):
         super().__init__(config)
-        from scservo_sdk import PortHandler, sms_sts  # lazy import
+        from scservo_sdk import PacketHandler, PortHandler  # lazy import
 
         self.port = PortHandler(config.serial_port)
-        self.packet = sms_sts(self.port)
+        self.packet = PacketHandler(self.STS_PROTOCOL_END)
         if not self.port.openPort():
             raise RuntimeError(f"Failed to open serial port {config.serial_port}")
         if not self.port.setBaudRate(config.baudrate):
             raise RuntimeError(f"Failed to set baud rate {config.baudrate}")
         self.speed = config.move_speed
         self.accel = config.move_accel
-        # Engage torque on every joint so position commands take effect.
+        # Configure speed/accel once and engage torque so position commands move.
         for joint, motor_id in self.motor_ids.items():
-            self.packet.write1ByteTxRx(motor_id, self.ADDR_TORQUE_ENABLE, 1)
+            self.packet.write1ByteTxRx(self.port, motor_id, self.ADDR_GOAL_ACC, self.accel)
+            self.packet.write2ByteTxRx(self.port, motor_id, self.ADDR_GOAL_SPEED, self.speed)
+            self.packet.write1ByteTxRx(self.port, motor_id, self.ADDR_TORQUE_ENABLE, 1)
         log.info("Feetech bus open on %s @ %d baud", config.serial_port, config.baudrate)
 
     def _read_positions_deg(self) -> dict[str, float]:
@@ -130,7 +143,9 @@ class FeetechArm(_BaseArm):
 
         out: dict[str, float] = {}
         for joint, motor_id in self.motor_ids.items():
-            pos, _spd, comm, err = self.packet.ReadPosSpeed(motor_id)
+            pos, comm, err = self.packet.read2ByteTxRx(
+                self.port, motor_id, self.ADDR_PRESENT_POSITION
+            )
             if comm != COMM_SUCCESS or err != 0:
                 log.warning("Could not read motor %s (id %d); assuming 180deg",
                             joint, motor_id)
@@ -144,12 +159,16 @@ class FeetechArm(_BaseArm):
         # writing all commanded joints keeps the pose coherent and cheap.
         for joint, deg in targets.items():
             motor_id = self.motor_ids[joint]
-            self.packet.WritePosEx(motor_id, deg_to_ticks(deg), self.speed, self.accel)
+            self.packet.write2ByteTxRx(
+                self.port, motor_id, self.ADDR_GOAL_POSITION, deg_to_ticks(deg)
+            )
 
     def relax(self) -> None:
         for motor_id in self.motor_ids.values():
             try:
-                self.packet.write1ByteTxRx(motor_id, self.ADDR_TORQUE_ENABLE, 0)
+                self.packet.write1ByteTxRx(
+                    self.port, motor_id, self.ADDR_TORQUE_ENABLE, 0
+                )
             except Exception:  # noqa: BLE001
                 pass
 

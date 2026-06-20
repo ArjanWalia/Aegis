@@ -29,22 +29,24 @@ def main() -> int:
     args = ap.parse_args()
 
     try:
-        from scservo_sdk import PortHandler, sms_sts
-    except ImportError:
-        print("scservo_sdk not installed. Run:")
-        print("  pip install -r requirements-hardware.txt")
+        from scservo_sdk import PacketHandler, PortHandler
+    except Exception as exc:  # noqa: BLE001
+        print(f"Could not import scservo_sdk ({exc!r}).")
+        print("Install it into THIS interpreter:")
+        print("  python -m pip install feetech-servo-sdk")
         return 2
 
+    ADDR_TORQUE_ENABLE = 40
+    ADDR_PRESENT_POSITION = 56
     port = PortHandler(args.port)
-    packet = sms_sts(port)
+    packet = PacketHandler(0)  # protocol_end=0 for STS/SMS servos
     if not port.openPort() or not port.setBaudRate(args.baud):
         print(f"ERROR: could not open {args.port} @ {args.baud}")
         return 1
 
-    ADDR_TORQUE_ENABLE = 40
     if args.relax:
         for motor_id in _DEFAULT_MOTOR_IDS.values():
-            packet.write1ByteTxRx(motor_id, ADDR_TORQUE_ENABLE, 0)
+            packet.write1ByteTxRx(port, motor_id, ADDR_TORQUE_ENABLE, 0)
         print("Torque disabled — move the arm by hand. Ctrl-C to quit.\n")
 
     names = list(_DEFAULT_MOTOR_IDS)
@@ -53,7 +55,7 @@ def main() -> int:
             cells = []
             for joint in names:
                 motor_id = _DEFAULT_MOTOR_IDS[joint]
-                pos, _spd, _c, _e = packet.ReadPosSpeed(motor_id)
+                pos, _c, _e = packet.read2ByteTxRx(port, motor_id, ADDR_PRESENT_POSITION)
                 cells.append(f"{joint}={ticks_to_deg(pos):6.1f}")
             print("  ".join(cells), end="\r", flush=True)
             time.sleep(0.1)
