@@ -131,12 +131,22 @@ class FeetechArm(_BaseArm):
             raise RuntimeError(f"Failed to set baud rate {config.baudrate}")
         self.speed = config.move_speed
         self.accel = config.move_accel
-        # Configure speed/accel once and engage torque so position commands move.
+        # Configure speed/accel once. Torque is engaged in connect() *after* the
+        # goal position is set to the present pose, so the arm never snaps to a
+        # stale goal-position register when torque turns on.
         for joint, motor_id in self.motor_ids.items():
             self.packet.write1ByteTxRx(self.port, motor_id, self.ADDR_GOAL_ACC, self.accel)
             self.packet.write2ByteTxRx(self.port, motor_id, self.ADDR_GOAL_SPEED, self.speed)
-            self.packet.write1ByteTxRx(self.port, motor_id, self.ADDR_TORQUE_ENABLE, 1)
         log.info("Feetech bus open on %s @ %d baud", config.serial_port, config.baudrate)
+
+    def connect(self) -> None:
+        # Read present pose into the commanded state (via _BaseArm.connect).
+        super().connect()
+        # Hold exactly where the arm is: set goal = present, *then* enable torque
+        # so engaging torque produces no motion.
+        self._write_positions_deg(self._commanded)
+        for motor_id in self.motor_ids.values():
+            self.packet.write1ByteTxRx(self.port, motor_id, self.ADDR_TORQUE_ENABLE, 1)
 
     def _read_positions_deg(self) -> dict[str, float]:
         from scservo_sdk import COMM_SUCCESS
